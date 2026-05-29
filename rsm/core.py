@@ -58,6 +58,14 @@ class ResonantStateMemory(nn.Module):
             score_threshold=float(config["contradiction_threshold"]),
         )
 
+        # Learnable query projection — trained by standalone RSM training.
+        # Initialized to identity-like (near-zero residual) so early reads
+        # behave like raw cosine until the training signal shapes it.
+        # Gradient flows: loss → retrieved → softmax(logits) → q → query_proj ✓
+        # Summaries are buffers — never receive gradient from any path.
+        self.query_proj = nn.Linear(d_model, d_model, bias=False)
+        nn.init.eye_(self.query_proj.weight)   # start as identity
+
     def pointer(self, i: int) -> str:
         return self._pointers[i]
 
@@ -67,11 +75,14 @@ class ResonantStateMemory(nn.Module):
     def read(self, query: torch.Tensor) -> torch.Tensor:
         """
         query : (d_model,) on any device; returns same device as summaries.
+
+        Gradient flows through query_proj → the RSM learns how to ask questions.
+        Summaries (K/V) are buffers — no gradient through slot values.
         """
         if query.shape != (self.d_model,):
             raise ValueError(f"query must be ({self.d_model},)")
         device = self.summaries.device
-        q = l2_normalize(query.to(device), dim=0)
+        q = l2_normalize(self.query_proj(query.to(device)), dim=0)
         s = l2_normalize(self.summaries, dim=-1)
         logits = torch.mv(s, q) * 8.0
         w = torch.softmax(logits, dim=0)
