@@ -12,8 +12,8 @@ from typing import List
 import pytest
 import torch
 
-from data.loader import TextLoader, chunk_by_words
-from data.pairs import (
+from rsm_data.loader import TextLoader, chunk_by_words
+from rsm_data.pairs import (
     make_contrastive_pairs,
     make_retrieval_triples,
     pair_batches,

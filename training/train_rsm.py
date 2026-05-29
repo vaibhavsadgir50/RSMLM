@@ -59,8 +59,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from config import get_config
-from data.loader import TextLoader
-from data.pairs import (
+from rsm_data.loader import TextLoader
+from rsm_data.pairs import (
     make_contrastive_pairs,
     make_retrieval_triples,
     pair_batches,
